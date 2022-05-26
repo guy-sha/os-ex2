@@ -62,7 +62,7 @@
 #include <linux/random.h>
 #include <linux/rcuwait.h>
 #include <linux/compat.h>
-#include <linux/hw2.h> //----------TAL
+#include <linux/hw2.h> //----------hw2
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
@@ -1156,8 +1156,10 @@ static int wait_task_zombie(struct wait_opts *wo, struct task_struct *p)
 		p->exit_state = state;
 		write_unlock_irq(&tasklist_lock);
 	}
-	if (state == EXIT_DEAD)
+	if (state == EXIT_DEAD){ //-----hw2
+		hw2_unregister_process(pid);	
 		release_task(p);
+	}
 
 out_info:
 	infop = wo->wo_info;
@@ -1175,6 +1177,29 @@ out_info:
 
 	return pid;
 }
+
+static void hw2_unregister_process(pid_t p) ///-hw2
+{
+	struct list_head* iter;
+	struct list_head* temp = NULL;
+	struct recognized_task* entry; 
+	
+	list_for_each(iter, &(init_task.recognized)) {
+		entry = list_entry(iter, struct recognized_task, list);
+		if (entry->pid == p) {
+			temp = iter;
+			break;
+		}
+	}
+
+	if( temp != NULL)
+	{
+		list_del_init(iter);
+		kfree(temp);
+	}
+
+}
+
 
 static int *task_stopped_code(struct task_struct *p, bool ptrace)
 {
@@ -1519,12 +1544,13 @@ repeat:
 	tsk = current;
 	do {
 		retval = do_wait_thread(wo, tsk);
-		if (retval)
+		if (retval){
 			goto end;
-
+		}
 		retval = ptrace_do_wait(wo, tsk);
-		if (retval)
+		if (retval){
 			goto end;
+		}
 
 		if (wo->wo_flags & __WNOTHREAD)
 			break;
@@ -1544,28 +1570,7 @@ end:
 	__set_current_state(TASK_RUNNING);
 	remove_wait_queue(&current->signal->wait_chldexit, &wo->child_wait);
 
-	/*----removing fron recognized list-----TAL ------
-	struct list_head* iter;
-	struct list_head* temp = NULL;
-	struct recognized_task* entry; 
-	///this gives us an "ISO C90 forbids mixed declarations and code" warning, moving the decleration to the start of the function will fix it but i wanted you to see it all altogether
 	
-
-	list_for_each(iter, &(init_task.recognized)) {
-		entry = list_entry(iter, struct recognized_task, list);
-		if (entry->pid == wo->wo_pid) { //wo_pid is "struct pid" (declared in include/linux/pid.h and not actually the pid to this will not work, need to figure out where the pid number is stored
-			temp = iter;
-			break;
-		}
-	}
-
-	if( temp != NULL)
-	{
-		list_del_init(iter);
-		kfree(temp);
-	}
-
-	----end of removing fron recognized list-----*/
 	return retval;
 }
 
