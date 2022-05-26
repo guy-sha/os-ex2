@@ -1041,6 +1041,31 @@ eligible_child(struct wait_opts *wo, bool ptrace, struct task_struct *p)
 	return 1;
 }
 
+
+static void hw2_unregister_process(pid_t p) ///-hw2
+{
+	struct list_head* iter;
+	struct list_head* temp = NULL;
+	struct recognized_task* entry; 
+	
+	list_for_each(iter, &(init_task.recognized)) {
+		entry = list_entry(iter, struct recognized_task, list);
+		if (entry->pid == p) {
+			temp = iter;
+			break;
+		}
+	}
+
+	if( temp != NULL)
+	{
+		list_del_init(iter);
+		kfree(temp);
+	}
+
+}
+
+
+
 /*
  * Handle sys_wait4 work for one task in state EXIT_ZOMBIE.  We hold
  * read_lock(&tasklist_lock) on entry.  If we return zero, we still hold
@@ -1178,27 +1203,6 @@ out_info:
 	return pid;
 }
 
-static void hw2_unregister_process(pid_t p) ///-hw2
-{
-	struct list_head* iter;
-	struct list_head* temp = NULL;
-	struct recognized_task* entry; 
-	
-	list_for_each(iter, &(init_task.recognized)) {
-		entry = list_entry(iter, struct recognized_task, list);
-		if (entry->pid == p) {
-			temp = iter;
-			break;
-		}
-	}
-
-	if( temp != NULL)
-	{
-		list_del_init(iter);
-		kfree(temp);
-	}
-
-}
 
 
 static int *task_stopped_code(struct task_struct *p, bool ptrace)
