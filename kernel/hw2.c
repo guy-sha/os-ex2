@@ -49,11 +49,12 @@ void recognized_add_process(struct recognized_task* new) {
 
 asmlinkage long sys_register_process(void) {
 	struct recognized_task *new_ptr;
-	new_ptr = kmalloc(sizeof *new_ptr, GFP_KERNEL /*GFP_USER?*/);
-	/*if (!new_ptr) can it fail?
+	new_ptr = kmalloc(sizeof *new_ptr, GFP_KERNEL);
+	if (!new_ptr) //can it fail?
 	{
 	return -ENOMEM;
-	}*/
+	}
+
 	INIT_LIST_HEAD(&(new_ptr->list));
 	//new_ptr->list =  LIST_HEAD_INIT(new_ptr->list);
 	new_ptr->proc_ptr = current;
